@@ -45,9 +45,9 @@ To wrap `target` with `encoding-down` or `levelup` (you must install these depen
 
 If `target` does not create persistent databases (like `memdown` or `level-mem`) you must pass `--mem`.
 
-Options for the db can be provided via `--db <subargs>`. For example `--db [--cacheSize 16mb]` or `--db [--valueEncoding json]`.
+Options for the db can be provided via `--db <subargs>`. For example `--db [ --cacheSize 16mb ]` or `--db [ --valueEncoding json ]`. Note that the brackets must be surrounded by spaces.
 
-Benchmark-specific options can be provided via `-b <subargs>`. For example `-b [-n 1e6 --concurrency 1]`. These options are listed below.
+Benchmark-specific options can be provided via `-b <subargs>`. For example `-b [ -n 1e6 --concurrency 1 ]`. These options are listed below.
 
 Results are by default written to `.benchmarks/<benchmark>.<time>.csv` and an accompanying JSON file for metadata. To write results to a custom file specify `--out example.csv` (`-o` for short). The metadata is used to derive a distinct benchmark name. When this doesn't suffice (for example because you're benchmarking a spinning disk versus an SSD, a fact that isn't included in the metadata) or when labels in the plot become too long, you can specify a custom name with `--name example`.
 
@@ -73,8 +73,8 @@ level-bench run put memdown --mem --encode
 Or a specific encoding:
 
 ```
-level-bench run put level --db [--valueEncoding utf8]
-level-bench run put level --db [--valueEncoding json]
+level-bench run put level --db [ --valueEncoding utf8 ]
+level-bench run put level --db [ --valueEncoding json ]
 ```
 
 Or compare the effect of options:
@@ -150,6 +150,31 @@ Perform concurrent `batch()` operations. Same as `put`, but in batches rather th
 - `--concurrency`: default 1
 - Other options are the same as of the `put` benchmark, see above.
 
+### `read`
+
+Perform `get()`, `iterator()` or `createReadStream()` operations. Inserts `-n` sequential keys into the database, then reads them (in random order by default). Records the Simple Moving Average (SMA) of the duration of the last 1000 reads, as well as the Cumulative Moving Average (CMA) of the throughput in MB/s. Options:
+
+- `-n`: amount of operations, default 1e6
+- `--get`: use `get()` operations (default), optionally with subargs, for example `--get [ --no-fillCache ]`.
+- `--iterator`: use an iterator, optionally with subargs, for example `--iterator [ --highWaterMark 1mb --limit 10 --reverse ]`. If a `limit` is specified, multiple iterators will be created in succession, but note that they currently all use the same range (i.e. the benchmark will repeatedly read the head or tail of the db).
+- `--stream`: use a stream, not implemented yet
+- `--concurrency`: default 1, only supported for `--get` atm
+- `--keys` (string): one of:
+  - `random` (default): read pseudo-random numeric keys (0-N) with a certain probability `distribution`
+  - `seq`: read non-random, sequential numeric keys (0-N)
+  - `seqReverse`: same keys but in reverse (N-0)
+- `--values` (string): one of:
+  - `random` (default): write pseudo-random values
+  - `empty`: write zero-length values or zero-filled if `valueSize` is set
+- `--seed` (string): seed to use for random numbers, defaults to `'seed'`
+- `--distribution` (string): one of [`zipfian`](https://github.com/vweevers/zipfian-integer), `uniform` (default)
+- `--skew` (floating-point number): Zipfian skew (default 0)
+- `--offset` (number): offset keys (for example to simulate timestamps)
+- `--valueSize`: size of value, as a number in bytes or string with unit (e.g. `--valueSize 1kb`)
+- `--keyAsBuffer`, `--valueAsBuffer` (boolean): if not set, keys and values are written and read as strings (hex encoded).
+
+The `--get`, `--iterator` and `--stream` flags are mutually exclusive. The `--keys` flag is only used for `--get` atm.
+
 ### `self-distribution`
 
 _Not a benchmark, but a temporary cheat to reuse the tooling we have here to test (and visualize) some of the internals. Needs a valid `target` argument, same as real benchmarks, although that argument is not actually used._
@@ -162,9 +187,9 @@ Generate keys with a certain order and probability distribution. Options:
 Example:
 
 ```
-level-bench run self-distribution memdown -b [--distribution zipfian --skew 1]
-level-bench run self-distribution memdown -b [--distribution zipfian --skew=-1]
-level-bench run self-distribution memdown -b [--keys seq]
+level-bench run self-distribution memdown -b [ --distribution zipfian --skew 1 ]
+level-bench run self-distribution memdown -b [ --distribution zipfian --skew=-1 ]
+level-bench run self-distribution memdown -b [ --keys seq ]
 level-bench plot self-distribution
 ```
 
